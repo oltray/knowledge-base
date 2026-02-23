@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Secrets / env overrides
+.env
+.env.local
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Logs (generated at runtime, not tracked)
+*.log
+
+# The actual documentation content lives outside the repo (at DOC_PATH)
+# Nothing to ignore here — docs are intentionally not in this repo

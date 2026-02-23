@@ -1,0 +1,287 @@
+# ==============================================================================
+# sources.yaml — Declarative manifest of all documentation sources
+#
+# To add a new source: add an entry to the appropriate section.
+# Scripts read this file — you never need to edit them.
+#
+# Sections:
+#   git   — repositories to clone (and git pull on update)
+#   wget  — files to download (PDFs, ZIPs, HTML)
+#   zeal  — Dash/Zeal docsets to download and extract
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Git repositories
+# Fields:
+#   name     — directory name inside category/
+#   url      — git clone URL
+#   category — subdirectory under DOC_PATH
+#   depth    — clone depth (1 = shallow, omit for full clone)
+# ------------------------------------------------------------------------------
+git:
+
+  # Languages
+  - name: rust-book
+    url: https://github.com/rust-lang/book.git
+    category: 01-languages/rust
+    depth: 1
+
+  - name: rust-by-example
+    url: https://github.com/rust-lang/rust-by-example.git
+    category: 01-languages/rust
+    depth: 1
+
+  - name: cppreference-doc
+    url: https://github.com/PeterFeicht/cppreference-doc.git
+    category: 01-languages/c-cpp
+    depth: 1
+
+  # Web
+  - name: mdn-content
+    url: https://github.com/mdn/content.git
+    category: 02-web/html-css
+    depth: 1
+
+  - name: mdn-css-examples
+    url: https://github.com/mdn/css-examples.git
+    category: 02-web/html-css
+    depth: 1
+
+  # Systems / Linux
+  - name: man-pages
+    url: https://github.com/mkerrisk/man-pages.git
+    category: 03-systems/linux
+    depth: 1
+
+  # Security
+  - name: owasp-cheatsheets
+    url: https://github.com/OWASP/CheatSheetSeries.git
+    category: 05-security/owasp
+    depth: 1
+
+  - name: owasp-wstg
+    url: https://github.com/OWASP/wstg.git
+    category: 05-security/owasp
+    depth: 1
+
+  # Databases
+  - name: sqlite
+    url: https://github.com/sqlite/sqlite.git
+    category: 06-databases/sql
+    depth: 1
+
+  # DevOps
+  - name: docker-docs
+    url: https://github.com/docker/docs.git
+    category: 07-devops/docker
+    depth: 1
+
+  - name: kubernetes-docs
+    url: https://github.com/kubernetes/website.git
+    category: 07-devops/kubernetes
+    depth: 1
+
+  # Tools
+  - name: pro-git
+    url: https://github.com/progit/progit2.git
+    category: 08-tools/git
+    depth: 1
+
+  # Extras
+  - name: free-programming-books
+    url: https://github.com/EbookFoundation/free-programming-books.git
+    category: 99-extras/books
+    depth: 1
+
+# ------------------------------------------------------------------------------
+# Wget / curl downloads
+# Fields:
+#   name     — filename to save as
+#   url      — download URL
+#   category — subdirectory under DOC_PATH
+#   extract  — true to unzip/untar after download (optional)
+# ------------------------------------------------------------------------------
+wget:
+
+  # Python documentation
+  - name: python-3.12-docs.zip
+    url: https://docs.python.org/3/archives/python-3.12-docs-html.zip
+    category: 01-languages/python
+    extract: true
+
+  - name: python-3.12-docs.pdf
+    url: https://docs.python.org/3/archives/python-3.12-docs-pdf-a4.zip
+    category: 01-languages/python
+    extract: true
+
+  # Go documentation
+  - name: effective_go.html
+    url: https://go.dev/doc/effective_go.html
+    category: 01-languages/go
+
+  # Networking — RFCs
+  - name: rfc791-ip.txt
+    url: https://www.rfc-editor.org/rfc/rfc791.txt
+    category: 04-networking/rfcs
+
+  - name: rfc793-tcp.txt
+    url: https://www.rfc-editor.org/rfc/rfc793.txt
+    category: 04-networking/rfcs
+
+  - name: rfc2616-http1.1.txt
+    url: https://www.rfc-editor.org/rfc/rfc2616.txt
+    category: 04-networking/rfcs
+
+  - name: rfc7540-http2.txt
+    url: https://www.rfc-editor.org/rfc/rfc7540.txt
+    category: 04-networking/rfcs
+
+  - name: rfc8446-tls1.3.txt
+    url: https://www.rfc-editor.org/rfc/rfc8446.txt
+    category: 04-networking/rfcs
+
+  - name: rfc9110-http-semantics.txt
+    url: https://www.rfc-editor.org/rfc/rfc9110.txt
+    category: 04-networking/rfcs
+
+  # Security — OWASP
+  - name: OWASP-Top-10-2021.pdf
+    url: https://owasp.org/www-project-top-ten/assets/PDF/OWASP-Top-10-2021.pdf
+    category: 05-security/owasp
+
+  # Security — NIST Special Publications
+  - name: NIST-SP-800-53r5.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf
+    category: 05-security/nist
+
+  - name: NIST-SP-800-63b.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63b.pdf
+    category: 05-security/nist
+
+  - name: NIST-SP-800-61r2.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf
+    category: 05-security/nist
+
+  - name: NIST-SP-800-115.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-115.pdf
+    category: 05-security/nist
+
+  - name: NIST-SP-800-171r2.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171r2.pdf
+    category: 05-security/nist
+
+  # Databases
+  - name: postgresql-16-docs.pdf
+    url: https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf
+    category: 06-databases/sql
+
+  - name: mysql-8.0-reference.pdf
+    url: https://downloads.mysql.com/docs/refman-8.0-en.pdf
+    category: 06-databases/sql
+
+  # Systems — Linux
+  - name: abs-guide.pdf
+    url: https://tldp.org/LDP/abs/abs-guide.pdf
+    category: 03-systems/linux
+
+  - name: bash-beginners-guide.pdf
+    url: https://tldp.org/LDP/Bash-Beginners-Guide/Bash-Beginners-Guide.pdf
+    category: 03-systems/linux
+
+  # Papers
+  - name: attention-is-all-you-need.pdf
+    url: https://arxiv.org/pdf/1706.03762.pdf
+    category: 99-extras/papers
+
+  - name: mapreduce.pdf
+    url: https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf
+    category: 99-extras/papers
+
+  - name: dynamo.pdf
+    url: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+    category: 99-extras/papers
+
+# ------------------------------------------------------------------------------
+# Zeal / Dash docsets
+# Compatible with both Zeal (Linux) and Dash (macOS)
+# Fields:
+#   name     — docset name (used to build download URL)
+#   category — subdirectory under DOC_PATH
+#
+# Download URL pattern:
+#   http://{cdn}.kapeli.com/feeds/{name}.tgz
+# ------------------------------------------------------------------------------
+zeal:
+
+  # Languages
+  - name: Python_3
+    category: 01-languages/python
+
+  - name: JavaScript
+    category: 01-languages/javascript
+
+  - name: TypeScript
+    category: 01-languages/javascript
+
+  - name: C
+    category: 01-languages/c-cpp
+
+  - name: C++
+    category: 01-languages/c-cpp
+
+  - name: Rust
+    category: 01-languages/rust
+
+  - name: Go
+    category: 01-languages/go
+
+  - name: Java_SE11
+    category: 01-languages/java
+
+  - name: Bash
+    category: 03-systems/linux
+
+  # Web / Frontend
+  - name: HTML
+    category: 02-web/html-css
+
+  - name: CSS
+    category: 02-web/html-css
+
+  - name: React
+    category: 02-web/frontend-frameworks
+
+  - name: Vue.js
+    category: 02-web/frontend-frameworks
+
+  - name: Node.JS
+    category: 02-web/backend
+
+  # Databases
+  - name: PostgreSQL
+    category: 06-databases/sql
+
+  - name: MySQL
+    category: 06-databases/sql
+
+  - name: SQLite
+    category: 06-databases/sql
+
+  - name: Redis
+    category: 06-databases/nosql
+
+  - name: MongoDB
+    category: 06-databases/nosql
+
+  # DevOps / Tools
+  - name: Docker
+    category: 07-devops/docker
+
+  - name: Kubernetes
+    category: 07-devops/kubernetes
+
+  - name: Git
+    category: 08-tools/git
+
+  - name: Vim
+    category: 08-tools/editors
