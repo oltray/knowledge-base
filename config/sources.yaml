@@ -235,8 +235,8 @@ zeal:
   - name: Go
     category: 01-languages/go
 
-  - name: Java_SE8
-    category: 01-languages/java
+  # Java docset: not available on Kapeli CDN — use official Oracle docs or download manually
+  # https://docs.oracle.com/en/java/javase/
 
   - name: Bash
     category: 03-systems/linux
@@ -251,8 +251,8 @@ zeal:
   - name: React
     category: 02-web/frontend-frameworks
 
-  - name: Vue
-    category: 02-web/frontend-frameworks
+  # Vue docset: not available on Kapeli CDN — use https://vuejs.org/guide/ or DevDocs
+
 
   - name: NodeJS
     category: 02-web/backend
