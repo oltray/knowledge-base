@@ -14,22 +14,25 @@ INDEX_DIR="${DOC_PATH}/00-index"
 README_FILE="${INDEX_DIR}/README.md"
 STATUS_FILE="${INDEX_DIR}/status.md"
 
-# Category display names
-declare -A CATEGORY_NAMES=(
-  ["00-index"]="Index"
-  ["01-languages"]="Programming Languages"
-  ["02-web"]="Web Technologies"
-  ["03-systems"]="Operating Systems & Systems Programming"
-  ["04-networking"]="Networking"
-  ["05-security"]="Security"
-  ["06-databases"]="Databases"
-  ["07-devops"]="DevOps & Infrastructure"
-  ["08-tools"]="Development Tools"
-  ["09-algorithms"]="Algorithms & Data Structures"
-  ["10-architecture"]="Software Architecture"
-  ["11-standards"]="Standards Documents"
-  ["99-extras"]="Books, Papers & Extras"
-)
+# Category display names (case statement — bash 3.x compatible)
+get_category_name() {
+  case "$1" in
+    00-index)      echo "Index" ;;
+    01-languages)  echo "Programming Languages" ;;
+    02-web)        echo "Web Technologies" ;;
+    03-systems)    echo "Operating Systems & Systems Programming" ;;
+    04-networking) echo "Networking" ;;
+    05-security)   echo "Security" ;;
+    06-databases)  echo "Databases" ;;
+    07-devops)     echo "DevOps & Infrastructure" ;;
+    08-tools)      echo "Development Tools" ;;
+    09-algorithms) echo "Algorithms & Data Structures" ;;
+    10-architecture) echo "Software Architecture" ;;
+    11-standards)  echo "Standards Documents" ;;
+    99-extras)     echo "Books, Papers & Extras" ;;
+    *)             echo "$1" ;;
+  esac
+}
 
 generate_readme() {
   log_step "Generating index: $README_FILE"
@@ -52,7 +55,8 @@ generate_readme() {
       local category_name
       category_name=$(basename "$category_dir")
       [[ "$category_name" == "00-index" ]] && continue
-      local display_name="${CATEGORY_NAMES[$category_name]:-$category_name}"
+      local display_name
+      display_name=$(get_category_name "$category_name")
       local anchor
       anchor=$(echo "$display_name" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
       echo "- [$display_name](#$anchor)"
@@ -70,7 +74,8 @@ generate_readme() {
       category_name=$(basename "$category_dir")
       [[ "$category_name" == "00-index" ]] && continue
 
-      local display_name="${CATEGORY_NAMES[$category_name]:-$category_name}"
+      local display_name
+      display_name=$(get_category_name "$category_name")
       local cat_size
       cat_size=$(du -sh "$category_dir" 2>/dev/null | cut -f1)
 

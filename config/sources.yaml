@@ -105,12 +105,12 @@ wget:
 
   # Python documentation
   - name: python-3.12-docs.zip
-    url: https://docs.python.org/3/archives/python-3.12-docs-html.zip
+    url: https://docs.python.org/3/archives/python-3.12.10-docs-html.zip
     category: 01-languages/python
     extract: true
 
   - name: python-3.12-docs.pdf
-    url: https://docs.python.org/3/archives/python-3.12-docs-pdf-a4.zip
+    url: https://docs.python.org/3/archives/python-3.12.10-docs-pdf-a4.zip
     category: 01-languages/python
     extract: true
 
@@ -146,7 +146,7 @@ wget:
 
   # Security — OWASP
   - name: OWASP-Top-10-2021.pdf
-    url: https://owasp.org/www-project-top-ten/assets/PDF/OWASP-Top-10-2021.pdf
+    url: https://owasp.org/Top10/assets/PDF/OWASP-Top-10-2021-en.pdf
     category: 05-security/owasp
 
   # Security — NIST Special Publications
@@ -235,7 +235,7 @@ zeal:
   - name: Go
     category: 01-languages/go
 
-  - name: Java_SE11
+  - name: Java_SE8
     category: 01-languages/java
 
   - name: Bash
@@ -251,10 +251,10 @@ zeal:
   - name: React
     category: 02-web/frontend-frameworks
 
-  - name: Vue.js
+  - name: Vue
     category: 02-web/frontend-frameworks
 
-  - name: Node.JS
+  - name: NodeJS
     category: 02-web/backend
 
   # Databases
@@ -277,11 +277,7 @@ zeal:
   - name: Docker
     category: 07-devops/docker
 
-  - name: Kubernetes
-    category: 07-devops/kubernetes
-
-  - name: Git
-    category: 08-tools/git
+  # Note: Kubernetes and Git docsets removed — covered by git repos (kubernetes-docs, pro-git)
 
   - name: Vim
     category: 08-tools/editors

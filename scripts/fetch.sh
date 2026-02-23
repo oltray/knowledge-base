@@ -230,6 +230,13 @@ fetch_zeal_sources() {
     log_info "Downloading $name docset..."
     if wget -q --show-progress --retry-connrefused --waitretry=5 --tries=3 \
          -O "$tgz_file" "$docset_url" 2>&1; then
+      # Verify it's actually a valid gzip archive before extracting
+      if ! file "$tgz_file" 2>/dev/null | grep -qi "gzip\|tar"; then
+        log_error "Downloaded file is not a valid archive (likely a 404 page): $name"
+        rm -f "$tgz_file"
+        ((failed++)) || true
+        continue
+      fi
       log_info "Extracting $name docset..."
       if tar -xzf "$tgz_file" -C "$category_dir" 2>&1; then
         rm -f "$tgz_file"
