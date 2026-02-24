@@ -8,14 +8,14 @@ A self-deploying offline documentation library. Clone it, run one command, walk 
 
 **macOS / Linux:**
 ```bash
-git clone https://github.com/rw/knowledge-base.git
+git clone https://github.com/oltray/knowledge-base.git
 cd knowledge-base
 ./setup.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-git clone https://github.com/rw/knowledge-base.git
+git clone https://github.com/oltray/knowledge-base.git
 cd knowledge-base
 .\setup.ps1
 ```
