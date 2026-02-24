@@ -1,22 +1,22 @@
 # ==============================================================================
-# sources.yaml — Declarative manifest of all documentation sources
+# sources.yaml - Declarative manifest of all documentation sources
 #
 # To add a new source: add an entry to the appropriate section.
-# Scripts read this file — you never need to edit them.
+# Scripts read this file - you never need to edit them.
 #
 # Sections:
-#   git   — repositories to clone (and git pull on update)
-#   wget  — files to download (PDFs, ZIPs, HTML)
-#   zeal  — Dash/Zeal docsets to download and extract
+#   git   - repositories to clone (and git pull on update)
+#   wget  - files to download (PDFs, ZIPs, HTML)
+#   zeal  - Dash/Zeal docsets to download and extract
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # Git repositories
 # Fields:
-#   name     — directory name inside category/
-#   url      — git clone URL
-#   category — subdirectory under DOC_PATH
-#   depth    — clone depth (1 = shallow, omit for full clone)
+#   name     - directory name inside category/
+#   url      - git clone URL
+#   category - subdirectory under DOC_PATH
+#   depth    - clone depth (1 = shallow, omit for full clone)
 # ------------------------------------------------------------------------------
 git:
 
@@ -101,21 +101,21 @@ git:
 # ------------------------------------------------------------------------------
 # Wget / curl downloads
 # Fields:
-#   name     — filename to save as
-#   url      — download URL
-#   category — subdirectory under DOC_PATH
-#   extract  — true to unzip/untar after download (optional)
+#   name     - filename to save as
+#   url      - download URL
+#   category - subdirectory under DOC_PATH
+#   extract  - true to unzip/untar after download (optional)
 # ------------------------------------------------------------------------------
 wget:
 
   # Python documentation
   - name: python-3.12-docs.zip
-    url: https://docs.python.org/3/archives/python-3.12.10-docs-html.zip
+    url: https://docs.python.org/3.12/archives/python-3.12-docs-html.zip
     category: 01-languages/python
     extract: true
 
   - name: python-3.12-docs.pdf
-    url: https://docs.python.org/3/archives/python-3.12.10-docs-pdf-a4.zip
+    url: https://docs.python.org/3.12/archives/python-3.12-docs-pdf-a4.zip
     category: 01-languages/python
     extract: true
 
@@ -124,7 +124,7 @@ wget:
     url: https://go.dev/doc/effective_go.html
     category: 01-languages/go
 
-  # Networking — RFCs
+  # Networking - RFCs
   - name: rfc791-ip.txt
     url: https://www.rfc-editor.org/rfc/rfc791.txt
     category: 04-networking/rfcs
@@ -149,11 +149,11 @@ wget:
     url: https://www.rfc-editor.org/rfc/rfc9110.txt
     category: 04-networking/rfcs
 
-  # Security — OWASP
-  # OWASP Top 10: no stable direct-download PDF exists from owasp.org.
-  # Full content (2021 + 2025 editions) is in the owasp-top10 git repo above.
+  # Security - OWASP
+  # OWASP Top 10 has no stable direct-download PDF.
+  # Full content (2021 + 2025 editions) is in the owasp-top10 git repo.
 
-  # Security — NIST Special Publications
+  # Security - NIST Special Publications
   - name: NIST-SP-800-53r5.pdf
     url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf
     category: 05-security/nist
@@ -183,7 +183,7 @@ wget:
     url: https://downloads.mysql.com/docs/refman-8.0-en.pdf
     category: 06-databases/sql
 
-  # Systems — Linux
+  # Systems - Linux
   - name: abs-guide.pdf
     url: https://tldp.org/LDP/abs/abs-guide.pdf
     category: 03-systems/linux
@@ -209,8 +209,8 @@ wget:
 # Zeal / Dash docsets
 # Compatible with both Zeal (Linux) and Dash (macOS)
 # Fields:
-#   name     — docset name (used to build download URL)
-#   category — subdirectory under DOC_PATH
+#   name     - docset name (used to build download URL)
+#   category - subdirectory under DOC_PATH
 #
 # Download URL pattern:
 #   http://{cdn}.kapeli.com/feeds/{name}.tgz
@@ -239,7 +239,7 @@ zeal:
   - name: Go
     category: 01-languages/go
 
-  # Java docset: not available on Kapeli CDN — use official Oracle docs or download manually
+  # Java docset: not available on Kapeli CDN - use official Oracle docs or download manually
   # https://docs.oracle.com/en/java/javase/
 
   - name: Bash
@@ -255,7 +255,7 @@ zeal:
   - name: React
     category: 02-web/frontend-frameworks
 
-  # Vue docset: not available on Kapeli CDN — use https://vuejs.org/guide/ or DevDocs
+  # Vue docset: not available on Kapeli CDN - use https://vuejs.org/guide/ or DevDocs
 
 
   - name: NodeJS
@@ -281,7 +281,7 @@ zeal:
   - name: Docker
     category: 07-devops/docker
 
-  # Note: Kubernetes and Git docsets removed — covered by git repos (kubernetes-docs, pro-git)
+  # Note: Kubernetes and Git docsets removed - covered by git repos (kubernetes-docs, pro-git)
 
   - name: Vim
     category: 08-tools/editors
