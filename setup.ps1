@@ -32,7 +32,8 @@
 param(
     [switch]$DryRun,
     [switch]$SkipFetch,
-    [string]$DocPath
+    [string]$DocPath,
+    [switch]$SkipStoragePrompt
 )
 
 Set-StrictMode -Version Latest
@@ -49,6 +50,69 @@ if ($DocPath) { $env:DOC_PATH = $DocPath }
 $DOC_PATH           = $env:DOC_PATH
 $OBSIDIAN_VAULT_PATH = $env:OBSIDIAN_VAULT_PATH
 $LOG_FILE           = $env:KB_LOG_FILE
+
+# ==============================================================================
+# 0. Storage location selection
+# ==============================================================================
+
+function Select-StorageLocation {
+    # Skip if -DocPath was explicitly passed or -SkipStoragePrompt is set
+    if ($DocPath -or $SkipStoragePrompt) { return }
+
+    Write-Host ""
+    Write-Host "  Where would you like to store the knowledge base?" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  [1] System storage  (default: $HOME\docs)" -ForegroundColor White
+    Write-Host "  [2] External storage (e.g. external SSD / USB drive)" -ForegroundColor White
+    Write-Host ""
+
+    do {
+        $choice = (Read-Host "  Enter choice [1/2]").Trim()
+        if ($choice -eq "") { $choice = "1" }   # default to system storage
+    } until ($choice -in @("1", "2"))
+
+    if ($choice -eq "1") {
+        # Use the default path already defined in config\settings.ps1 / env var.
+        # Nothing to override — just confirm to the user.
+        $resolved = if ($env:DOC_PATH) { $env:DOC_PATH } else { "$HOME\docs" }
+        Write-Host ""
+        Write-KbInfo "Using system storage: $resolved"
+    }
+    else {
+        # List removable / non-system drives to help the user choose
+        Write-Host ""
+        Write-Host "  Detected drives:" -ForegroundColor Cyan
+        $sysDrive = $env:SystemDrive.TrimEnd(":\") + ":"
+        Get-PSDrive -PSProvider FileSystem | Where-Object {
+            $_.Root -ne "" -and $_.Name -ne $sysDrive.TrimEnd(":")
+        } | ForEach-Object {
+            $label = if ($_.Description) { " ($($_.Description))" } else { "" }
+            $free  = if ($_.Free) { "  Free: {0:N1} GB" -f ($_.Free / 1GB) } else { "" }
+            Write-Host ("    {0}:\{1}{2}" -f $_.Name, $label, $free) -ForegroundColor White
+        }
+        Write-Host ""
+
+        do {
+            $extInput = (Read-Host "  Enter the full path for your docs folder on the external drive`n  (e.g. E:\docs  or  F:\knowledge-base)").Trim()
+        } until ($extInput -ne "")
+
+        # Validate the root drive exists
+        $extRoot = Split-Path -Qualifier $extInput
+        if (-not (Test-Path $extRoot)) {
+            Write-KbError "Drive '$extRoot' not found. Please connect the external drive and re-run setup."
+            exit 1
+        }
+
+        $env:DOC_PATH = $extInput
+        Write-Host ""
+        Write-KbInfo "Using external storage: $extInput"
+    }
+
+    # Re-bind the module-level variables now that env may have changed
+    $script:DOC_PATH            = if ($env:DOC_PATH)            { $env:DOC_PATH }            else { "$HOME\docs" }
+    $script:OBSIDIAN_VAULT_PATH = if ($env:OBSIDIAN_VAULT_PATH) { $env:OBSIDIAN_VAULT_PATH } else { "$HOME\obsidian-kb" }
+    Write-Host ""
+}
 
 # ==============================================================================
 # 1. Install dependencies
@@ -263,8 +327,9 @@ Write-Host "|       knowledge-base setup (Windows)    |" -ForegroundColor Cyan
 Write-Host "+==========================================+" -ForegroundColor Cyan
 Write-Host ""
 
-if ($DryRun) { Write-KbWarn "DRY RUN MODE — no changes will be made" }
+if ($DryRun) { Write-KbWarn 'DRY RUN MODE - no changes will be made' }
 
+Select-StorageLocation
 Install-Deps
 New-DirectoryStructure
 Initialize-Log
