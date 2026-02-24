@@ -36,10 +36,8 @@ function Ensure-Dir {
 function Invoke-CurlDownload {
     param([string]$Url, [string]$Output)
     # curl.exe is built into Windows 10+.
-    # We suppress stderr-as-error by temporarily relaxing the error preference
-    # and capturing both streams, then re-emit any stderr lines as warnings so
-    # a 404 or timeout prints [WARN] and lets the script continue rather than
-    # throwing a NativeCommandError that stops everything.
+    # Temporarily relax error handling so stderr output from curl does not
+    # trigger a NativeCommandError and abort the script.
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $allOutput = & curl.exe -fsSL --retry 3 --retry-delay 5 -o $Output $Url 2>&1
@@ -103,8 +101,8 @@ function Fetch-GitSources {
             $skipped++
         } else {
             Write-KbInfo "Cloning $name (depth=$depth)..."
-            # core.protectNTFS=false - skip NTFS-unsafe/case-colliding files
-            # (e.g. man-pages) instead of aborting. Capture stderr as warnings.
+            # core.protectNTFS=false skips case-colliding files on Windows
+            # instead of aborting. Capture stderr as warnings.
             $prev = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
             $gitOut = & git -c core.protectNTFS=false clone --depth=$depth --quiet $url $targetDir 2>&1
@@ -218,7 +216,9 @@ function Fetch-ZealSources {
     }
 
     $success = 0; $skipped = 0; $failed = 0
-    $cdn = $env:ZEAL_CDN
+    # Fall back to 'london' if ZEAL_CDN env var is not set.
+    # Valid options: sanfrancisco, london, newyork, tokyo, frankfurt
+    $cdn = if ($env:ZEAL_CDN) { $env:ZEAL_CDN } else { 'london' }
 
     for ($i = 0; $i -lt [int]$count; $i++) {
         $name     = (& yq ".zeal[$i].name"     $SOURCES_FILE).Trim()
@@ -245,9 +245,26 @@ function Fetch-ZealSources {
         Write-KbInfo "Downloading $name docset..."
         $exitCode = Invoke-CurlDownload -Url $docsetUrl -Output $tgzFile
         if ($exitCode -eq 0 -and (Test-Path $tgzFile)) {
+            # Verify it is actually a tar archive before attempting extraction.
+            # A 404 from the CDN returns an HTML page, not a tgz.
+            $magic = [System.IO.File]::ReadAllBytes($tgzFile) | Select-Object -First 2
+            $isTar = ($magic[0] -eq 0x1f -and $magic[1] -eq 0x8b)  # gzip magic bytes
+            if (-not $isTar) {
+                Write-KbError "$name docset download was not a valid archive (CDN may have returned an error page)"
+                Remove-Item $tgzFile -Force
+                $failed++
+                continue
+            }
             Write-KbInfo "Extracting $name docset..."
-            & tar -xzf $tgzFile -C $categoryDir 2>&1
-            if ($LASTEXITCODE -eq 0) {
+            $prev = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            $tarOut = & tar -xzf $tgzFile -C $categoryDir 2>&1
+            $tarExit = $LASTEXITCODE
+            $ErrorActionPreference = $prev
+            foreach ($line in $tarOut) {
+                if ("$line".Trim()) { Write-KbWarn "tar: $line" }
+            }
+            if ($tarExit -eq 0) {
                 Remove-Item $tgzFile -Force
                 Write-KbOk "$name.docset -> $category\"
                 Write-KbToFile "INFO" "Installed docset: $name"
