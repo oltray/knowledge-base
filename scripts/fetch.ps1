@@ -1,263 +1,287 @@
 # ==============================================================================
-# fetch.ps1 — Core fetch engine for Windows
-# Reads sources.yaml and downloads/clones all documentation sources
+# sources.yaml - Declarative manifest of all documentation sources
 #
-# Usage:
-#   .\scripts\fetch.ps1 [install|update]
-#   install (default) — fresh clone/download
-#   update            — git pull existing repos, skip existing files
+# To add a new source: add an entry to the appropriate section.
+# Scripts read this file - you never need to edit them.
+#
+# Sections:
+#   git   - repositories to clone (and git pull on update)
+#   wget  - files to download (PDFs, ZIPs, HTML)
+#   zeal  - Dash/Zeal docsets to download and extract
 # ==============================================================================
 
-param(
-    [ValidateSet("install","update")]
-    [string]$Mode = "install"
-)
+# ------------------------------------------------------------------------------
+# Git repositories
+# Fields:
+#   name     - directory name inside category/
+#   url      - git clone URL
+#   category - subdirectory under DOC_PATH
+#   depth    - clone depth (1 = shallow, omit for full clone)
+# ------------------------------------------------------------------------------
+git:
 
-$ScriptDir  = $PSScriptRoot
-$RepoDir    = Split-Path $ScriptDir -Parent
+  # Languages
+  - name: rust-book
+    url: https://github.com/rust-lang/book.git
+    category: 01-languages/rust
+    depth: 1
 
-. (Join-Path $ScriptDir "lib.ps1")
-. (Join-Path $RepoDir "config\settings.ps1")
+  - name: rust-by-example
+    url: https://github.com/rust-lang/rust-by-example.git
+    category: 01-languages/rust
+    depth: 1
 
-$SOURCES_FILE = $script:KB_SOURCES_FILE
-$DOC_PATH     = $env:DOC_PATH
+  - name: cppreference-doc
+    url: https://github.com/PeterFeicht/cppreference-doc.git
+    category: 01-languages/c-cpp
+    depth: 1
+
+  # Web
+  - name: mdn-content
+    url: https://github.com/mdn/content.git
+    category: 02-web/html-css
+    depth: 1
+
+  - name: mdn-css-examples
+    url: https://github.com/mdn/css-examples.git
+    category: 02-web/html-css
+    depth: 1
+
+  # Systems / Linux
+  - name: man-pages
+    url: https://github.com/mkerrisk/man-pages.git
+    category: 03-systems/linux
+    depth: 1
+
+  # Security
+  - name: owasp-top10
+    url: https://github.com/OWASP/Top10.git
+    category: 05-security/owasp
+    depth: 1
+
+  - name: owasp-cheatsheets
+    url: https://github.com/OWASP/CheatSheetSeries.git
+    category: 05-security/owasp
+    depth: 1
+
+  - name: owasp-wstg
+    url: https://github.com/OWASP/wstg.git
+    category: 05-security/owasp
+    depth: 1
+
+  # Databases
+  - name: sqlite
+    url: https://github.com/sqlite/sqlite.git
+    category: 06-databases/sql
+    depth: 1
+
+  # DevOps
+  - name: docker-docs
+    url: https://github.com/docker/docs.git
+    category: 07-devops/docker
+    depth: 1
+
+  - name: kubernetes-docs
+    url: https://github.com/kubernetes/website.git
+    category: 07-devops/kubernetes
+    depth: 1
+
+  # Tools
+  - name: pro-git
+    url: https://github.com/progit/progit2.git
+    category: 08-tools/git
+    depth: 1
+
+  # Extras
+  - name: free-programming-books
+    url: https://github.com/EbookFoundation/free-programming-books.git
+    category: 99-extras/books
+    depth: 1
 
 # ------------------------------------------------------------------------------
-# Helpers
+# Wget / curl downloads
+# Fields:
+#   name     - filename to save as
+#   url      - download URL
+#   category - subdirectory under DOC_PATH
+#   extract  - true to unzip/untar after download (optional)
 # ------------------------------------------------------------------------------
+wget:
 
-function Ensure-Dir {
-    param([string]$Path)
-    if (-not (Test-Path $Path)) {
-        New-Item -ItemType Directory -Path $Path -Force | Out-Null
-    }
-}
+  # Python documentation
+  - name: python-3.12-docs.zip
+    url: https://docs.python.org/3.12/archives/python-3.12-docs-html.zip
+    category: 01-languages/python
+    extract: true
 
-function Invoke-CurlDownload {
-    param([string]$Url, [string]$Output)
-    # curl.exe is built into Windows 10+ (distinct from PowerShell's curl alias)
-    & curl.exe -fsSL --retry 3 --retry-delay 5 -o $Output $Url 2>&1
-    return $LASTEXITCODE
-}
+  - name: python-3.12-docs.pdf
+    url: https://docs.python.org/3.12/archives/python-3.12-docs-pdf-a4.zip
+    category: 01-languages/python
+    extract: true
 
-# ------------------------------------------------------------------------------
-# Git sources
-# ------------------------------------------------------------------------------
+  # Go documentation
+  - name: effective_go.html
+    url: https://go.dev/doc/effective_go.html
+    category: 01-languages/go
 
-function Fetch-GitSources {
-    Write-KbStep "Processing Git repositories"
+  # Networking - RFCs
+  - name: rfc791-ip.txt
+    url: https://www.rfc-editor.org/rfc/rfc791.txt
+    category: 04-networking/rfcs
 
-    $count = & yq '.git | length' $SOURCES_FILE 2>$null
-    if (-not $count -or $count -eq "0" -or $count -eq "null") {
-        Write-KbWarn "No git sources defined in sources.yaml"
-        return
-    }
+  - name: rfc793-tcp.txt
+    url: https://www.rfc-editor.org/rfc/rfc793.txt
+    category: 04-networking/rfcs
 
-    $success = 0; $skipped = 0; $failed = 0
+  - name: rfc2616-http1.1.txt
+    url: https://www.rfc-editor.org/rfc/rfc2616.txt
+    category: 04-networking/rfcs
 
-    for ($i = 0; $i -lt [int]$count; $i++) {
-        $name     = (& yq ".git[$i].name"       $SOURCES_FILE).Trim()
-        $url      = (& yq ".git[$i].url"        $SOURCES_FILE).Trim()
-        $category = (& yq ".git[$i].category"   $SOURCES_FILE).Trim()
-        $depth    = (& yq ".git[$i].depth // 1" $SOURCES_FILE).Trim()
+  - name: rfc7540-http2.txt
+    url: https://www.rfc-editor.org/rfc/rfc7540.txt
+    category: 04-networking/rfcs
 
-        if (Test-SkipCategory $category) {
-            Write-KbSkip "$name (category $category skipped)"
-            $skipped++
-            continue
-        }
+  - name: rfc8446-tls1.3.txt
+    url: https://www.rfc-editor.org/rfc/rfc8446.txt
+    category: 04-networking/rfcs
 
-        $categoryDir = Join-Path $DOC_PATH $category
-        $targetDir   = Join-Path $categoryDir $name
-        Ensure-Dir $categoryDir
+  - name: rfc9110-http-semantics.txt
+    url: https://www.rfc-editor.org/rfc/rfc9110.txt
+    category: 04-networking/rfcs
 
-        if ($Mode -eq "update" -and (Test-Path (Join-Path $targetDir ".git"))) {
-            Write-KbInfo "Updating $name..."
-            $result = & git -C $targetDir pull --rebase --autostash -q 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-KbOk "$name updated"
-                Write-KbToFile "INFO" "Updated git repo: $name"
-                $success++
-            } else {
-                Write-KbError "Failed to update $name"
-                Write-KbToFile "ERROR" "Failed to update git repo: $name"
-                $failed++
-            }
-        } elseif (Test-Path (Join-Path $targetDir ".git")) {
-            Write-KbSkip "$name (already cloned — run update.ps1 to refresh)"
-            $skipped++
-        } else {
-            Write-KbInfo "Cloning $name (depth=$depth)..."
-            $result = & git clone --depth=$depth --quiet $url $targetDir 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Write-KbOk "$name cloned -> $category\$name"
-                Write-KbToFile "INFO" "Cloned git repo: $name"
-                $success++
-            } else {
-                Write-KbError "Failed to clone $name from $url"
-                Write-KbToFile "ERROR" "Failed to clone git repo: $name ($url)"
-                $failed++
-            }
-        }
-    }
+  # Security - OWASP
+  # OWASP Top 10 has no stable direct-download PDF.
+  # Full content (2021 + 2025 editions) is in the owasp-top10 git repo.
 
-    Write-KbInfo "Git sources — success: $success, skipped: $skipped, failed: $failed"
-}
+  # Security - NIST Special Publications
+  - name: NIST-SP-800-53r5.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf
+    category: 05-security/nist
 
-# ------------------------------------------------------------------------------
-# File download sources (wget equivalent)
-# ------------------------------------------------------------------------------
+  - name: NIST-SP-800-63b.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63b.pdf
+    category: 05-security/nist
 
-function Fetch-WgetSources {
-    Write-KbStep "Processing file downloads"
+  - name: NIST-SP-800-61r2.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf
+    category: 05-security/nist
 
-    $count = & yq '.wget | length' $SOURCES_FILE 2>$null
-    if (-not $count -or $count -eq "0" -or $count -eq "null") {
-        Write-KbWarn "No wget sources defined in sources.yaml"
-        return
-    }
+  - name: NIST-SP-800-115.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-115.pdf
+    category: 05-security/nist
 
-    $success = 0; $skipped = 0; $failed = 0
+  - name: NIST-SP-800-171r2.pdf
+    url: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171r2.pdf
+    category: 05-security/nist
 
-    for ($i = 0; $i -lt [int]$count; $i++) {
-        $name     = (& yq ".wget[$i].name"            $SOURCES_FILE).Trim()
-        $url      = (& yq ".wget[$i].url"             $SOURCES_FILE).Trim()
-        $category = (& yq ".wget[$i].category"        $SOURCES_FILE).Trim()
-        $extract  = (& yq ".wget[$i].extract // false" $SOURCES_FILE).Trim()
+  # Databases
+  - name: postgresql-16-docs.pdf
+    url: https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf
+    category: 06-databases/sql
 
-        if (Test-SkipCategory $category) {
-            Write-KbSkip "$name (category $category skipped)"
-            $skipped++
-            continue
-        }
+  - name: mysql-8.0-reference.pdf
+    url: https://downloads.mysql.com/docs/refman-8.0-en.pdf
+    category: 06-databases/sql
 
-        $categoryDir = Join-Path $DOC_PATH $category
-        $targetFile  = Join-Path $categoryDir $name
-        Ensure-Dir $categoryDir
+  # Systems - Linux
+  - name: abs-guide.pdf
+    url: https://tldp.org/LDP/abs/abs-guide.pdf
+    category: 03-systems/linux
 
-        # Skip if already downloaded
-        if ($Mode -ne "update" -and (Test-Path $targetFile)) {
-            Write-KbSkip "$name (already exists)"
-            $skipped++
-            continue
-        }
+  - name: bash-beginners-guide.pdf
+    url: https://tldp.org/LDP/Bash-Beginners-Guide/Bash-Beginners-Guide.pdf
+    category: 03-systems/linux
 
-        # Skip if already extracted
-        if ($extract -eq "true" -and $Mode -ne "update") {
-            $baseName = [System.IO.Path]::GetFileNameWithoutExtension(
-                [System.IO.Path]::GetFileNameWithoutExtension($name)
-            )
-            if (Test-Path (Join-Path $categoryDir $baseName)) {
-                Write-KbSkip "$name (already extracted as $baseName\)"
-                $skipped++
-                continue
-            }
-        }
+  # Papers
+  - name: attention-is-all-you-need.pdf
+    url: https://arxiv.org/pdf/1706.03762.pdf
+    category: 99-extras/papers
 
-        Write-KbInfo "Downloading $name..."
-        $exitCode = Invoke-CurlDownload -Url $url -Output $targetFile
-        if ($exitCode -eq 0 -and (Test-Path $targetFile)) {
-            Write-KbOk "$name -> $category\$name"
-            Write-KbToFile "INFO" "Downloaded: $name"
+  - name: mapreduce.pdf
+    url: https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf
+    category: 99-extras/papers
 
-            if ($extract -eq "true") {
-                Invoke-Extract -File $targetFile -DestDir $categoryDir
-            }
-            $success++
-        } else {
-            Write-KbError "Failed to download $name from $url"
-            Write-KbToFile "ERROR" "Failed to download: $name ($url)"
-            if (Test-Path $targetFile) { Remove-Item $targetFile -Force }
-            $failed++
-        }
-    }
-
-    Write-KbInfo "File downloads — success: $success, skipped: $skipped, failed: $failed"
-}
+  - name: dynamo.pdf
+    url: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+    category: 99-extras/papers
 
 # ------------------------------------------------------------------------------
 # Zeal / Dash docsets
+# Compatible with both Zeal (Linux) and Dash (macOS)
+# Fields:
+#   name     - docset name (used to build download URL)
+#   category - subdirectory under DOC_PATH
+#
+# Download URL pattern:
+#   http://{cdn}.kapeli.com/feeds/{name}.tgz
 # ------------------------------------------------------------------------------
+zeal:
 
-function Fetch-ZealSources {
-    Write-KbStep "Processing Zeal/Dash docsets"
+  # Languages
+  - name: Python_3
+    category: 01-languages/python
 
-    $count = & yq '.zeal | length' $SOURCES_FILE 2>$null
-    if (-not $count -or $count -eq "0" -or $count -eq "null") {
-        Write-KbWarn "No zeal sources defined in sources.yaml"
-        return
-    }
+  - name: JavaScript
+    category: 01-languages/javascript
 
-    $success = 0; $skipped = 0; $failed = 0
-    $cdn = $env:ZEAL_CDN
+  - name: TypeScript
+    category: 01-languages/javascript
 
-    for ($i = 0; $i -lt [int]$count; $i++) {
-        $name     = (& yq ".zeal[$i].name"     $SOURCES_FILE).Trim()
-        $category = (& yq ".zeal[$i].category" $SOURCES_FILE).Trim()
+  - name: C
+    category: 01-languages/c-cpp
 
-        if (Test-SkipCategory $category) {
-            Write-KbSkip "$name docset (category $category skipped)"
-            $skipped++
-            continue
-        }
+  - name: C++
+    category: 01-languages/c-cpp
 
-        $categoryDir = Join-Path $DOC_PATH $category
-        $docsetDir   = Join-Path $categoryDir "$name.docset"
-        $tgzFile     = Join-Path $categoryDir "$name.tgz"
-        $docsetUrl   = "http://$cdn.kapeli.com/feeds/$name.tgz"
-        Ensure-Dir $categoryDir
+  - name: Rust
+    category: 01-languages/rust
 
-        if (Test-Path $docsetDir) {
-            Write-KbSkip "$name.docset (already installed)"
-            $skipped++
-            continue
-        }
+  - name: Go
+    category: 01-languages/go
 
-        Write-KbInfo "Downloading $name docset..."
-        $exitCode = Invoke-CurlDownload -Url $docsetUrl -Output $tgzFile
-        if ($exitCode -eq 0 -and (Test-Path $tgzFile)) {
-            Write-KbInfo "Extracting $name docset..."
-            & tar -xzf $tgzFile -C $categoryDir 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                Remove-Item $tgzFile -Force
-                Write-KbOk "$name.docset -> $category\"
-                Write-KbToFile "INFO" "Installed docset: $name"
-                $success++
-            } else {
-                Write-KbError "Failed to extract $name docset"
-                if (Test-Path $tgzFile) { Remove-Item $tgzFile -Force }
-                $failed++
-            }
-        } else {
-            Write-KbError "Failed to download $name docset from $docsetUrl"
-            Write-KbToFile "ERROR" "Failed to download docset: $name"
-            if (Test-Path $tgzFile) { Remove-Item $tgzFile -Force }
-            $failed++
-        }
-    }
+  # Java docset: not available on Kapeli CDN - use official Oracle docs or download manually
+  # https://docs.oracle.com/en/java/javase/
 
-    Write-KbInfo "Docsets — success: $success, skipped: $skipped, failed: $failed"
-}
+  - name: Bash
+    category: 03-systems/linux
 
-# ------------------------------------------------------------------------------
-# Main
-# ------------------------------------------------------------------------------
+  # Web / Frontend
+  - name: HTML
+    category: 02-web/html-css
 
-Invoke-RequireCommand "yq"
-Invoke-RequireCommand "git"
-Invoke-RequireCommand "curl"
+  - name: CSS
+    category: 02-web/html-css
 
-if (-not (Test-Path $SOURCES_FILE)) {
-    Write-KbError "sources.yaml not found at: $SOURCES_FILE"
-    exit 1
-}
+  - name: React
+    category: 02-web/frontend-frameworks
 
-Write-KbStep "Fetch mode: $Mode"
-Write-KbInfo "Documentation path: $DOC_PATH"
-Write-KbInfo "Sources file: $SOURCES_FILE"
+  # Vue docset: not available on Kapeli CDN - use https://vuejs.org/guide/ or DevDocs
 
-Fetch-GitSources
-Fetch-WgetSources
-Fetch-ZealSources
 
-Write-KbStep "Fetch complete"
+  - name: NodeJS
+    category: 02-web/backend
+
+  # Databases
+  - name: PostgreSQL
+    category: 06-databases/sql
+
+  - name: MySQL
+    category: 06-databases/sql
+
+  - name: SQLite
+    category: 06-databases/sql
+
+  - name: Redis
+    category: 06-databases/nosql
+
+  - name: MongoDB
+    category: 06-databases/nosql
+
+  # DevOps / Tools
+  - name: Docker
+    category: 07-devops/docker
+
+  # Note: Kubernetes and Git docsets removed - covered by git repos (kubernetes-docs, pro-git)
+
+  - name: Vim
+    category: 08-tools/editors

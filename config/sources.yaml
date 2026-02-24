@@ -54,6 +54,11 @@ git:
     depth: 1
 
   # Security
+  - name: owasp-top10
+    url: https://github.com/OWASP/Top10.git
+    category: 05-security/owasp
+    depth: 1
+
   - name: owasp-cheatsheets
     url: https://github.com/OWASP/CheatSheetSeries.git
     category: 05-security/owasp
@@ -145,9 +150,8 @@ wget:
     category: 04-networking/rfcs
 
   # Security — OWASP
-  - name: OWASP-Top-10-2021.pdf
-    url: https://owasp.org/Top10/assets/PDF/OWASP-Top-10-2021-en.pdf
-    category: 05-security/owasp
+  # OWASP Top 10: no stable direct-download PDF exists from owasp.org.
+  # Full content (2021 + 2025 editions) is in the owasp-top10 git repo above.
 
   # Security — NIST Special Publications
   - name: NIST-SP-800-53r5.pdf
