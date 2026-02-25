@@ -1,34 +1,46 @@
 # Track 03 — Systems
 
-> **Status:** 🔜 Planned (P1)
+> **Level:** Intermediate
+> **Goal:** Understand how the OS manages processes, memory, concurrency, and I/O at the syscall level
 
 ---
 
-## Coming Soon
+## Why Systems
 
-This track will cover systems programming and operating system fundamentals.
-Topics planned:
-
-- Process management: fork, exec, signals, wait
-- File I/O at the syscall level: open, read, write, mmap
-- Concurrency: threads, mutexes, semaphores
-- Memory layout: stack, heap, BSS, text segments
-- Unix sockets and IPC
-- Reading the Linux kernel source conventions
+Every program runs inside an operating system that controls what it can do. When
+code misbehaves — crashes, leaks memory, deadlocks, blocks on I/O — the explanation
+is always in the OS layer. This track gives you the mental model to reason about
+what your programs are actually doing.
 
 ---
 
-## Prerequisites (when available)
+## Modules
+
+| # | Module | Description |
+|---|---|---|
+| 1 | [Processes and the Kernel](./01-processes-and-the-kernel.md) | Syscall interface, process lifecycle, signals |
+| 2 | [Memory Layout](./02-memory-layout.md) | Virtual memory, address space, stack vs heap |
+| 3 | [Concurrency](./03-concurrency.md) | Threads, race conditions, mutexes, deadlock |
+| 4 | [File Descriptors and IPC](./04-file-descriptors-and-ipc.md) | Everything-is-a-file, pipes, sockets, mmap |
+
+---
+
+## Prerequisites
 
 - [Track 00 — Foundations](../00-foundations/index.md)
-- [Languages: C/C++](../01-languages/c-cpp/index.md)
 
 ---
 
 ## Local Documentation
 
-- Linux docs: `../../../../03-systems/linux/`
-- Unix reference: `../../../../03-systems/unix/`
+Linux man pages: `../../../../03-systems/linux/`
+
+---
+
+## What Comes Next
+
+- [Track 01 — Languages: C / C++](../01-languages/c-cpp/index.md) — implement syscalls directly in C
+- [Track 01 — Languages: Rust](../01-languages/rust/index.md) — safe systems programming
 
 ---
 
