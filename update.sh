@@ -31,6 +31,38 @@ for arg in "$@"; do
   esac
 done
 
+sync_curriculum() {
+  local curriculum_src="${REPO_DIR}/curriculum"
+  local curriculum_dest="${OBSIDIAN_VAULT_PATH}/curriculum"
+
+  if [[ -L "$curriculum_dest" ]]; then
+    log_info "Curriculum symlink up to date via git pull"
+    return
+  fi
+
+  if [[ -d "$curriculum_dest" ]]; then
+    log_step "Syncing curriculum directory (plain copy, not symlink)"
+    if has_cmd rsync; then
+      rsync -r --delete "$curriculum_src/" "$curriculum_dest/"
+      log_success "Curriculum synced via rsync"
+    else
+      rm -rf "$curriculum_dest"
+      cp -r "$curriculum_src" "$curriculum_dest"
+      log_success "Curriculum synced via cp"
+    fi
+    return
+  fi
+
+  # Missing entirely — recreate
+  log_step "Curriculum missing from vault — recreating"
+  if [[ -d "$OBSIDIAN_VAULT_PATH" ]]; then
+    ln -s "$curriculum_src" "$curriculum_dest"
+    log_success "Curriculum symlink created: $curriculum_dest -> $curriculum_src"
+  else
+    log_warn "Obsidian vault not found at $OBSIDIAN_VAULT_PATH — skipping curriculum sync"
+  fi
+}
+
 main() {
   echo ""
   echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════╗${RESET}"
@@ -56,6 +88,8 @@ main() {
   else
     bash "$REPO_DIR/scripts/fetch.sh" update
   fi
+
+  sync_curriculum
 
   if [[ "$NO_INDEX" == "false" ]]; then
     bash "$REPO_DIR/scripts/index.sh"

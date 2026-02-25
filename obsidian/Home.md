@@ -65,6 +65,12 @@
 
 ---
 
+## Start Learning
+
+→ [[curriculum/overview|Curriculum Overview]] — Where to start and how to use these docs
+
+---
+
 ## Quick Notes
 
 Use this vault to cross-reference the documentation stored locally. Each page

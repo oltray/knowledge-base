@@ -223,7 +223,46 @@ function Initialize-ObsidianVault {
 }
 
 # ==============================================================================
-# 5. Fetch all documentation
+# 5. Set up curriculum layer
+# ==============================================================================
+
+function Initialize-Curriculum {
+    Write-KbStep "Setting up curriculum layer"
+
+    $curriculumSrc  = Join-Path $RepoDir "curriculum"
+    $curriculumDest = Join-Path $OBSIDIAN_VAULT_PATH "curriculum"
+
+    if ($DryRun) {
+        Write-KbInfo "[dry-run] Would create junction: $curriculumDest -> $curriculumSrc"
+        return
+    }
+
+    # Check if already set up
+    if (Test-Path $curriculumDest) {
+        $item = Get-Item $curriculumDest -ErrorAction SilentlyContinue
+        if ($item -and $item.LinkType -eq "Junction") {
+            Write-KbSkip "Curriculum junction already exists at $curriculumDest"
+        } else {
+            Write-KbSkip "Curriculum directory already exists at $curriculumDest (not a junction)"
+        }
+        return
+    }
+
+    # Try to create a directory junction (no admin required on Windows 10+)
+    try {
+        New-Item -ItemType Junction -Path $curriculumDest -Target $curriculumSrc | Out-Null
+        Write-KbOk "Curriculum junction created: $curriculumDest -> $curriculumSrc"
+        Write-KbInfo "git pull in the repo will automatically keep curriculum content current"
+    } catch {
+        Write-KbWarn "Could not create junction ($($_.Exception.Message)). Falling back to directory copy."
+        Copy-Item -Path $curriculumSrc -Destination $curriculumDest -Recurse -Force
+        Write-KbOk "Curriculum copied to $curriculumDest"
+        Write-KbWarn "Run .\update.ps1 after git pull to sync curriculum changes."
+    }
+}
+
+# ==============================================================================
+# 6. Fetch all documentation (was 5)
 # ==============================================================================
 
 function Invoke-FetchDocs {
@@ -241,7 +280,7 @@ function Invoke-FetchDocs {
 }
 
 # ==============================================================================
-# 6. Generate index
+# 7. Generate index (was 6)
 # ==============================================================================
 
 function Invoke-GenerateIndex {
@@ -269,6 +308,7 @@ Install-Deps
 New-DirectoryStructure
 Initialize-Log
 Initialize-ObsidianVault
+Initialize-Curriculum
 Invoke-FetchDocs
 Invoke-GenerateIndex
 
