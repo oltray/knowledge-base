@@ -218,7 +218,37 @@ setup_obsidian() {
 }
 
 # ------------------------------------------------------------------------------
-# 5. Fetch all documentation
+# 5. Set up curriculum layer
+# ------------------------------------------------------------------------------
+
+setup_curriculum() {
+  log_step "Setting up curriculum layer"
+
+  local curriculum_src="${REPO_DIR}/curriculum"
+  local curriculum_dest="${OBSIDIAN_VAULT_PATH}/curriculum"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_info "[dry-run] Would create symlink: $curriculum_dest -> $curriculum_src"
+    return
+  fi
+
+  if [[ -L "$curriculum_dest" ]]; then
+    log_skip "Curriculum symlink already exists at $curriculum_dest"
+    return
+  fi
+
+  if [[ -d "$curriculum_dest" ]]; then
+    log_skip "Curriculum directory already exists at $curriculum_dest (not a symlink)"
+    return
+  fi
+
+  ln -s "$curriculum_src" "$curriculum_dest"
+  log_success "Curriculum symlink created: $curriculum_dest -> $curriculum_src"
+  log_info "git pull in the repo will automatically keep curriculum content current"
+}
+
+# ------------------------------------------------------------------------------
+# 6. Fetch all documentation (was 5)
 # ------------------------------------------------------------------------------
 
 fetch_docs() {
@@ -236,7 +266,7 @@ fetch_docs() {
 }
 
 # ------------------------------------------------------------------------------
-# 6. Generate index
+# 7. Generate index (was 6)
 # ------------------------------------------------------------------------------
 
 generate_index() {
@@ -267,6 +297,7 @@ main() {
   create_directories
   init_log
   setup_obsidian
+  setup_curriculum
   fetch_docs
   generate_index
 
