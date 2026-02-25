@@ -7,6 +7,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/../config/settings.sh"
 
@@ -218,6 +219,92 @@ generate_status() {
   log_success "Status written → $STATUS_FILE"
 }
 
+generate_curriculum_status() {
+  [[ ! -d "$OBSIDIAN_VAULT_PATH" ]] && return
+
+  log_step "Generating curriculum status: $OBSIDIAN_VAULT_PATH/status.md"
+
+  local out="$OBSIDIAN_VAULT_PATH/status.md"
+  local repo_curriculum="$REPO_DIR/curriculum/tracks"
+
+  count_modules() {
+    find "$repo_curriculum/$1" -maxdepth 1 -name "*.md" ! -name "index.md" 2>/dev/null | wc -l | tr -d ' '
+  }
+
+  doc_status() {
+    local path="$DOC_PATH/$1"
+    if [[ -d "$path" ]] && [[ -n "$(ls -A "$path" 2>/dev/null)" ]]; then
+      echo "✅ $1"
+    else
+      echo "⬜ $1 — run \`./update.sh\`"
+    fi
+  }
+
+  module_status() {
+    local n
+    n=$(count_modules "$1")
+    if [[ "$n" -gt 0 ]]; then
+      echo "✅ $n modules"
+    else
+      echo "🔜 Planned"
+    fi
+  }
+
+  local ts
+  ts=$(date '+%Y-%m-%d %H:%M')
+
+  cat > "$out" << EOF
+# Library Status
+
+_Generated: ${ts}_
+
+## Curriculum Readiness
+
+| Track | Modules | Docs Installed |
+|---|---|---|
+| [00 — Foundations](curriculum/tracks/00-foundations/index.md) | $(module_status "00-foundations") | — (uses system docs) |
+| [01 — Python](curriculum/tracks/01-languages/python/index.md) | $(module_status "01-languages/python") | $(doc_status "01-languages/python") |
+| [02 — Web](curriculum/tracks/02-web/index.md) | $(module_status "02-web") | $(doc_status "02-web/html-css") |
+| [01 — JavaScript](curriculum/tracks/01-languages/javascript/index.md) | $(module_status "01-languages/javascript") | $(doc_status "01-languages/javascript") |
+| [01 — Rust](curriculum/tracks/01-languages/rust/index.md) | $(module_status "01-languages/rust") | $(doc_status "01-languages/rust") |
+| [01 — C/C++](curriculum/tracks/01-languages/c-cpp/index.md) | $(module_status "01-languages/c-cpp") | $(doc_status "01-languages/c-cpp") |
+| [03 — Systems](curriculum/tracks/03-systems/index.md) | $(module_status "03-systems") | $(doc_status "03-systems/linux") |
+| [04 — Networking](curriculum/tracks/04-networking/index.md) | $(module_status "04-networking") | $(doc_status "04-networking/protocols") |
+| [05 — Security](curriculum/tracks/05-security/index.md) | $(module_status "05-security") | $(doc_status "05-security/owasp") |
+| [06 — Databases](curriculum/tracks/06-databases/index.md) | $(module_status "06-databases") | $(doc_status "06-databases/sql") |
+| [07 — DevOps](curriculum/tracks/07-devops/index.md) | $(module_status "07-devops") | $(doc_status "07-devops/docker") |
+
+## Full Source Status
+
+See [${DOC_PATH}/00-index/status.md](${DOC_PATH}/00-index/status.md) for the complete
+list of all documentation sources and their installation state.
+
+---
+_Update docs: \`./update.sh\` · Get new curriculum modules: \`git pull\` in the repo_
+EOF
+
+  log_success "Curriculum status written → $out"
+}
+
+patch_vault_home() {
+  [[ ! -d "$OBSIDIAN_VAULT_PATH" ]] && return
+  local home="$OBSIDIAN_VAULT_PATH/Home.md"
+  [[ ! -f "$home" ]] && return
+  if grep -q "## Start Learning" "$home"; then
+    log_skip "Home.md already has Start Learning section"
+    return
+  fi
+  cat >> "$home" << 'EOF'
+
+---
+
+## Start Learning
+
+→ [[curriculum/overview|Curriculum Overview]] — Where to start and how to use these docs
+EOF
+  log_success "Home.md patched with Start Learning section"
+}
+
 main() {
   require_cmd yq
 
@@ -229,6 +316,8 @@ main() {
 
   generate_readme
   generate_status
+  generate_curriculum_status
+  patch_vault_home
 }
 
 main "$@"

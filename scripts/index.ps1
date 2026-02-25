@@ -204,6 +204,84 @@ function New-KbStatus {
     Write-KbOk "Status written -> $STATUS_FILE"
 }
 
+function New-CurriculumStatus {
+    $vaultPath = $env:OBSIDIAN_VAULT_PATH
+    if (-not (Test-Path $vaultPath)) { return }
+
+    Write-KbStep "Generating curriculum status: $vaultPath\status.md"
+
+    $out             = Join-Path $vaultPath "status.md"
+    $repoCurriculum  = Join-Path $RepoDir "curriculum\tracks"
+    $docPath         = $env:DOC_PATH
+    $timestamp       = Get-Date -Format 'yyyy-MM-dd HH:mm'
+
+    function Get-ModuleStatus([string]$TrackDir) {
+        $trackPath = Join-Path $repoCurriculum $TrackDir
+        $n = 0
+        if (Test-Path $trackPath) {
+            $n = (Get-ChildItem -Path $trackPath -Filter "*.md" -File -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Name -ne "index.md" }).Count
+        }
+        if ($n -gt 0) { return "✅ $n modules" } else { return "🔜 Planned" }
+    }
+
+    function Get-DocStatus([string]$RelFolder) {
+        $path = Join-Path $docPath $RelFolder
+        if ((Test-Path $path) -and (Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue).Count -gt 0) {
+            return "✅ $RelFolder"
+        } else {
+            return "⬜ $RelFolder — run ``.\update.ps1``"
+        }
+    }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("# Library Status")
+    $lines.Add("")
+    $lines.Add("_Generated: $timestamp_")
+    $lines.Add("")
+    $lines.Add("## Curriculum Readiness")
+    $lines.Add("")
+    $lines.Add("| Track | Modules | Docs Installed |")
+    $lines.Add("|---|---|---|")
+    $lines.Add("| [00 — Foundations](curriculum/tracks/00-foundations/index.md) | $(Get-ModuleStatus '00-foundations') | — (uses system docs) |")
+    $lines.Add("| [01 — Python](curriculum/tracks/01-languages/python/index.md) | $(Get-ModuleStatus '01-languages\python') | $(Get-DocStatus '01-languages\python') |")
+    $lines.Add("| [02 — Web](curriculum/tracks/02-web/index.md) | $(Get-ModuleStatus '02-web') | $(Get-DocStatus '02-web\html-css') |")
+    $lines.Add("| [01 — JavaScript](curriculum/tracks/01-languages/javascript/index.md) | $(Get-ModuleStatus '01-languages\javascript') | $(Get-DocStatus '01-languages\javascript') |")
+    $lines.Add("| [01 — Rust](curriculum/tracks/01-languages/rust/index.md) | $(Get-ModuleStatus '01-languages\rust') | $(Get-DocStatus '01-languages\rust') |")
+    $lines.Add("| [01 — C/C++](curriculum/tracks/01-languages/c-cpp/index.md) | $(Get-ModuleStatus '01-languages\c-cpp') | $(Get-DocStatus '01-languages\c-cpp') |")
+    $lines.Add("| [03 — Systems](curriculum/tracks/03-systems/index.md) | $(Get-ModuleStatus '03-systems') | $(Get-DocStatus '03-systems\linux') |")
+    $lines.Add("| [04 — Networking](curriculum/tracks/04-networking/index.md) | $(Get-ModuleStatus '04-networking') | $(Get-DocStatus '04-networking\protocols') |")
+    $lines.Add("| [05 — Security](curriculum/tracks/05-security/index.md) | $(Get-ModuleStatus '05-security') | $(Get-DocStatus '05-security\owasp') |")
+    $lines.Add("| [06 — Databases](curriculum/tracks/06-databases/index.md) | $(Get-ModuleStatus '06-databases') | $(Get-DocStatus '06-databases\sql') |")
+    $lines.Add("| [07 — DevOps](curriculum/tracks/07-devops/index.md) | $(Get-ModuleStatus '07-devops') | $(Get-DocStatus '07-devops\docker') |")
+    $lines.Add("")
+    $lines.Add("## Full Source Status")
+    $lines.Add("")
+    $lines.Add("See [$docPath\00-index\status.md]($docPath\00-index\status.md) for the complete")
+    $lines.Add("list of all documentation sources and their installation state.")
+    $lines.Add("")
+    $lines.Add("---")
+    $lines.Add("_Update docs: ``.\update.ps1`` · Get new curriculum modules: ``git pull`` in the repo_")
+
+    $lines | Set-Content -Path $out -Encoding UTF8
+    Write-KbOk "Curriculum status written -> $out"
+}
+
+function Update-VaultHome {
+    $vaultPath = $env:OBSIDIAN_VAULT_PATH
+    if (-not (Test-Path $vaultPath)) { return }
+    $home = Join-Path $vaultPath "Home.md"
+    if (-not (Test-Path $home)) { return }
+    $content = Get-Content $home -Raw
+    if ($content -match "## Start Learning") {
+        Write-KbSkip "Home.md already has Start Learning section"
+        return
+    }
+    $patch = "`n---`n`n## Start Learning`n`n→ [[curriculum/overview|Curriculum Overview]] — Where to start and how to use these docs`n"
+    Add-Content -Path $home -Value $patch -Encoding UTF8
+    Write-KbOk "Home.md patched with Start Learning section"
+}
+
 # ------------------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------------------
@@ -218,3 +296,5 @@ if (-not (Test-Path $DOC_PATH)) {
 
 New-KbReadme
 New-KbStatus
+New-CurriculumStatus
+Update-VaultHome
