@@ -17,3 +17,6 @@
 
 # The actual documentation content lives outside the repo (at DOC_PATH)
 # Nothing to ignore here — docs are intentionally not in this repo
+
+# Git worktrees
+.worktrees/
