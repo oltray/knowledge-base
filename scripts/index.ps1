@@ -75,7 +75,7 @@ function New-KbReadme {
 
         $lines.Add("## $displayName")
         $lines.Add("")
-        $lines.Add("_Path: ``$($cat.FullName)`` | Size: $catSize_")
+        $lines.Add("_Path: ``$($cat.FullName)`` | Size: $($catSize)_")
         $lines.Add("")
 
         $hasContent = $false
@@ -219,15 +219,15 @@ function New-CurriculumStatus {
         $trackPath = Join-Path $repoCurriculum $TrackDir
         $n = 0
         if (Test-Path $trackPath) {
-            $n = (Get-ChildItem -Path $trackPath -Filter "*.md" -File -ErrorAction SilentlyContinue |
-                  Where-Object { $_.Name -ne "index.md" }).Count
+            $n = @(Get-ChildItem -Path $trackPath -Filter "*.md" -File -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -ne "index.md" }).Count
         }
         if ($n -gt 0) { return "✅ $n modules" } else { return "🔜 Planned" }
     }
 
     function Get-DocStatus([string]$RelFolder) {
         $path = Join-Path $docPath $RelFolder
-        if ((Test-Path $path) -and (Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue).Count -gt 0) {
+        if ((Test-Path $path) -and @(Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue).Count -gt 0) {
             return "✅ $RelFolder"
         } else {
             return "⬜ $RelFolder — run ``.\update.ps1``"
@@ -237,7 +237,7 @@ function New-CurriculumStatus {
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("# Library Status")
     $lines.Add("")
-    $lines.Add("_Generated: $timestamp_")
+    $lines.Add("_Generated: $($timestamp)_")
     $lines.Add("")
     $lines.Add("## Curriculum Readiness")
     $lines.Add("")
@@ -270,15 +270,15 @@ function New-CurriculumStatus {
 function Update-VaultHome {
     $vaultPath = $env:OBSIDIAN_VAULT_PATH
     if (-not (Test-Path $vaultPath)) { return }
-    $home = Join-Path $vaultPath "Home.md"
-    if (-not (Test-Path $home)) { return }
-    $content = Get-Content $home -Raw
+    $homeMd = Join-Path $vaultPath "Home.md"
+    if (-not (Test-Path $homeMd)) { return }
+    $content = Get-Content $homeMd -Raw
     if ($content -match "## Start Learning") {
         Write-KbSkip "Home.md already has Start Learning section"
         return
     }
     $patch = "`n---`n`n## Start Learning`n`n→ [[curriculum/overview|Curriculum Overview]] — Where to start and how to use these docs`n"
-    Add-Content -Path $home -Value $patch -Encoding UTF8
+    Add-Content -Path $homeMd -Value $patch -Encoding UTF8
     Write-KbOk "Home.md patched with Start Learning section"
 }
 

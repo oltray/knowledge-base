@@ -169,16 +169,11 @@ function Fetch-WgetSources {
             continue
         }
 
-        # Skip if already extracted
-        if ($extract -eq "true" -and $Mode -ne "update") {
-            $baseName = [System.IO.Path]::GetFileNameWithoutExtension(
-                [System.IO.Path]::GetFileNameWithoutExtension($name)
-            )
-            if (Test-Path (Join-Path $categoryDir $baseName)) {
-                Write-KbSkip "$name (already extracted as $baseName\)"
-                $skipped++
-                continue
-            }
+        # Skip if already extracted (sentinel file written by Invoke-Extract)
+        if ($extract -eq "true" -and $Mode -ne "update" -and (Test-Path "$targetFile.done")) {
+            Write-KbSkip "$name (already extracted)"
+            $skipped++
+            continue
         }
 
         Write-KbInfo "Downloading $name..."
@@ -264,9 +259,15 @@ function Fetch-ZealSources {
             foreach ($line in $tarOut) {
                 if ("$line".Trim()) { Write-KbWarn "tar: $line" }
             }
-            if ($tarExit -eq 0) {
-                Remove-Item $tgzFile -Force
-                Write-KbOk "$name.docset -> $category\"
+            if ($tarExit -eq 0 -or (Test-Path $docsetDir)) {
+                # Clean up the tgz whether extraction was clean or partial
+                if (Test-Path $tgzFile) { Remove-Item $tgzFile -Force }
+                if ($tarExit -eq 0) {
+                    Write-KbOk "$name.docset -> $category\"
+                } else {
+                    # Partial extraction (e.g. symlinks or reserved filenames on Windows)
+                    Write-KbWarn "$name.docset extracted with warnings (some files skipped) -> $category\"
+                }
                 Write-KbToFile "INFO" "Installed docset: $name"
                 $success++
             } else {

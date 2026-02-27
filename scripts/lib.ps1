@@ -48,10 +48,12 @@ function Test-SkipCategory {
 function Get-HumanSize {
     param([string]$Path)
     if (Test-Path $Path -PathType Container) {
-        $bytes = (Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue $Path |
-                  Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
+        $measure = Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue $Path |
+                   Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue
+        $bytes = if ($measure -and $null -ne $measure.Sum) { $measure.Sum } else { 0 }
     } elseif (Test-Path $Path -PathType Leaf) {
-        $bytes = (Get-Item $Path -ErrorAction SilentlyContinue).Length
+        $item  = Get-Item $Path -ErrorAction SilentlyContinue
+        $bytes = if ($item) { $item.Length } else { 0 }
     } else {
         return "0 B"
     }
@@ -79,20 +81,26 @@ function Write-KbSummary {
 function Invoke-Extract {
     param([string]$File, [string]$DestDir)
     Write-KbInfo "Extracting $(Split-Path $File -Leaf)..."
+    $sentinel = "$File.done"
     switch -Regex ($File) {
         '\.zip$' {
             Expand-Archive -Path $File -DestinationPath $DestDir -Force
             Remove-Item $File -Force
+            New-Item -ItemType File -Path $sentinel -Force | Out-Null
         }
         '\.(tar\.gz|tgz)$' {
             & tar -xzf $File -C $DestDir 2>&1
-            if ($LASTEXITCODE -eq 0) { Remove-Item $File -Force }
-            else { Write-KbWarn "tar extraction had non-zero exit code for $File" }
+            if ($LASTEXITCODE -eq 0) {
+                Remove-Item $File -Force
+                New-Item -ItemType File -Path $sentinel -Force | Out-Null
+            } else { Write-KbWarn "tar extraction had non-zero exit code for $File" }
         }
         '\.tar\.bz2$' {
             & tar -xjf $File -C $DestDir 2>&1
-            if ($LASTEXITCODE -eq 0) { Remove-Item $File -Force }
-            else { Write-KbWarn "tar extraction had non-zero exit code for $File" }
+            if ($LASTEXITCODE -eq 0) {
+                Remove-Item $File -Force
+                New-Item -ItemType File -Path $sentinel -Force | Out-Null
+            } else { Write-KbWarn "tar extraction had non-zero exit code for $File" }
         }
         default {
             Write-KbWarn "Unknown archive format, skipping extraction: $(Split-Path $File -Leaf)"
